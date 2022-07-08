@@ -1,27 +1,11 @@
 # -*- coding: utf-8 -*-
-import os
-import random
-import traceback
-from constants import *
-from config import *
-from lambdas import *
-from db import Database
-from telebot import types, TeleBot
-import threading
-import time
-
-bot = TeleBot(token)
-db = Database(mongo_url)
+from startup import *
 
 bot.send_message(admin_id, 'Попітка встата!')
 
 @bot.message_handler(func=lambda m: not is_actual(m))
 def skip_message(m):
     pass
-
-def is_actual(m):
-    return m.date + 120 > int(round(time.time()))
-
 
 @bot.message_handler(commands=['switch_pets'], func=lambda m: admin_lambda(m) and arguments_lambda(m))
 def switch_pets_handler(m):
@@ -50,13 +34,13 @@ def chat_amount_handler(m):
 @bot.message_handler(commands=['newses'], func=admin_lambda)
 def newses_handler(m):
     db.globalchats.update_one({'id': m.chat.id}, {'$set': {'new_season': True}})
-    bot.send_message(m.chat.id, 'Готово. Новый сезон начат.')
+    bot.send_message(m.chat.id, 'Готово. В чате новый сезон.')
 
 
 @bot.message_handler(commands=['testadd'], func=admin_lambda)
 def addddd(m):
     db.globalchats.update_one({'id': m.chat.id}, {'$inc': {'1_upgrade': 1}})
-    bot.send_message(m.chat.id, 'add3')
+    bot.send_message(m.chat.id, 'add1')
 
 @bot.message_handler(commands=['newelite'], func=admin_lambda)
 def elitecheckk(m):
@@ -120,40 +104,15 @@ def switch_lvlup(m):
 
 @bot.message_handler(commands=['cock'])
 def cock_handler(m):
-    if not pet_abils:
-        return
-
-    chat = db.chats.find_one({'id': m.chat.id})
-    if not chat:
-        return
-    if chat['type'] != 'cock':
-        bot.send_message(m.chat.id, 'Только петух может делать это!')
-        return
-
-    user = bot.get_chat_member(m.chat.id, m.from_user.id)
-    if user.status != 'creator' and user.status != 'administrator' and not is_from_admin(
-            m) and m.from_user.id != m.chat.id:
-        bot.send_message(m.chat.id, 'Только админ может делать это!')
-        return
-    if time.time() - chat['cock_check'] < 1800:
-        bot.send_message(m.chat.id, 'Ещё не прошло пол часа с момента предыдущей проверки!')
-        return
-    if not m.reply_to_message:
-        bot.send_message(m.chat.id, 'Сделайте реплай на сообщение юзера!')
-        return
-
     x = db.users.find_one({'id': m.reply_to_message.from_user.id})
     if not x:
         bot.send_message(m.chat.id, 'Этого пользователя даже нет у меня в базе!')
-    if x['now_elite']:
-        tts = 'Выбранный юзер сегодня элита!'
-    else:
-        tts = 'Выбранный юзер сегодня НЕ элита!'
+    tts = f'Выбранный юзер сегодня{"" if x["now_elite"] else " НЕ"} элита!'
     bot.send_message(m.chat.id, tts, reply_to_message_id=m.message_id)
     db.chats.update_one({'id': m.chat.id}, {'$set': {'cock_check': time.time()}})
 
 
-@bot.message_handler(commands=['showlvl'], func=admin_lambda)
+@bot.message_handler(commands=['showlvl'], func=lambda m: arguments_lambda(m) and admin_lambda(m))
 def showlevel_handler(m):
     try:
         pet = {'lvl': int(m.text.split(' ')[1])}
@@ -162,17 +121,11 @@ def showlevel_handler(m):
     except:
         pass
 
-"""
 
-"""
 @bot.message_handler(commands=['donate'])
 def donate(m):
-    if cyber != 1:
-        text = 'Для совершения добровольного пожертвования можно использовать Сбербанк. ' + \
-               'Номер карты: `5336 6900 5562 4037`\nЗаранее благодарю!'
-    else:
-        text = 'Для совершения кибердобровольного киберпожертвования можно использовать КиберСбербанк. ' + \
-               'Номер киберкарты: `5336 6900 5562 4037`\nЗаранее киберблагодарю!'
+    text = 'Для совершения добровольного пожертвования можно использовать сервис Донателло. ' + \
+               'Ссылка: https://donatello.to/greatmultifandom\nЗаранее благодарим!'
 
     bot.send_message(m.chat.id, text, parse_mode='markdown')
 
@@ -190,7 +143,7 @@ def death_handler(m):
 
 @bot.message_handler(commands=['new_name'], func=lambda m: admin_lambda(m) and arguments_lambda(m))
 def new_name_handler(m):
-    chat = int(m.text.split(' ')[1])
+    chat_id = int(m.text.split(' ')[1])
     lvl = int(m.text.split(' ')[2])
     chatt = db.chats.find_one({'id': chat})
     db.chats.update_one({'id': chat}, {'$inc': {'lvl': lvl, 'exp': nextlvl(chatt)}})
@@ -207,18 +160,6 @@ def do_handler(m):
             bot.send_message(admin_id, traceback.format_exc())
     except:
         bot.send_message(admin_id, traceback.format_exc())
-
-
-@bot.message_handler(commands=['stop'], func=lambda m: admin_lambda(m) and arguments_lambda(m))
-def stop_handler(m):
-    db.chats.update_one({'id': int(m.text.split(' ')[1])}, {'$set': {'spying': None}})
-    bot.send_message(m.chat.id, 'success')
-
-
-@bot.message_handler(commands=['showchat'], func=lambda m: admin_lambda(m) and arguments_lambda(m))
-def showchat_handler(m):
-    db.chats.update_one({'id': int(m.text.split(' ')[1])}, {'$set': {'spying': m.chat.id}})
-    bot.send_message(m.chat.id, 'success')
 
 
 @bot.message_handler(commands=['growpet'])
@@ -257,75 +198,33 @@ def grow(m):
     bot.send_message(m.chat.id, 'Поздравляю! Вы завели питомца (лошадь)! О том, как за ней ухаживать, можно прочитать в /help.')
 
 
-@bot.message_handler(commands=['set_admin'])
+@bot.message_handler(commands=['set_admin'], func=lambda m: creator_lambda(m) and reply_lambda(m, False))
 def set_admin(m):
-    global cyber
-    user = bot.get_chat_member(m.chat.id, m.from_user.id)
-    if user.status == 'creator':
-        if m.reply_to_message:
-            chatt = db.chat_admins.find_one({'id': m.chat.id})
-            if not chatt:
-                db.chat_admins.insert_one(createchatadmins(m))
-                chatt = db.chat_admins.find_one({'id': m.chat.id})
-            if int(m.reply_to_message.from_user.id) not in chatt['admins']:
-                db.chat_admins.update_one({'id': m.chat.id}, {'$push': {'admins': int(m.reply_to_message.from_user.id)}})
-                if cyber != 1:
-                    bot.send_message(m.chat.id,
-                                     'Успешно установлен админ питомца: ' + m.reply_to_message.from_user.first_name)
-                else:
-                    bot.send_message(m.chat.id,
-                                     'Киберуспешно установлен киберадмин кибеолошади: Кибер' + m.reply_to_message.from_user.first_name)
-
-            else:
-                if cyber != 1:
-                    bot.send_message(m.chat.id, 'Этот юзер уже является администратором лошади!')
-                else:
-                    bot.send_message(m.chat.id, 'Этот киберюзер уже киберявляется киберадминистратором киберлошади!')
-
-        else:
-            if cyber != 1:
-                bot.send_message(m.chat.id, 'Сделайте реплай на сообщение цели!')
-            else:
-                bot.send_message(m.chat.id, 'Сделайте киберреплай на киберсообщение киберцели!')
-
+    chatt = db.chat_admins.find_one({'id': m.chat.id})
+    if not chatt:
+        db.chat_admins.insert_one(createchatadmins(m))
+        chatt = db.chat_admins.find_one({'id': m.chat.id})
+    if int(m.reply_to_message.from_user.id) not in chatt['admins']:
+        db.chat_admins.update_one({'id': m.chat.id}, {'$push': {'admins': int(m.reply_to_message.from_user.id)}})
+        bot.send_message(m.chat.id,
+                                'Успешно установлен админ питомца: ' + m.reply_to_message.from_user.first_name)
     else:
-        if cyber != 1:
-            bot.send_message(m.chat.id, 'Только создатель чата может делать это!')
-        else:
-            bot.send_message(m.chat.id, 'Только киберсоздатель киберчата может киберделать это!')
+        bot.send_message(m.chat.id, 'Этот юзер уже является администратором лошади!')
 
 
-@bot.message_handler(commands=['remove_admin'])
+
+@bot.message_handler(commands=['remove_admin'], func=lambda m: creator_lambda(m) and reply_lambda(m, False))
 def remove_admin(m):
-    global cyber
-    user = bot.get_chat_member(m.chat.id, m.from_user.id)
-    if user.status == 'creator':
-        if m.reply_to_message != None:
-            chatt = db.chat_admins.find_one({'id': m.chat.id})
-            if chatt == None:
-                db.chat_admins.insert_one(createchatadmins(m))
-                chatt = db.chat_admins.find_one({'id': m.chat.id})
-            if int(m.reply_to_message.from_user.id) in chatt['admins']:
-                db.chat_admins.update_one({'id': m.chat.id}, {'$pull': {'admins': int(m.reply_to_message.from_user.id)}})
-                bot.send_message(m.chat.id,
-                                 'Успешно удалён админ питомца: ' + m.reply_to_message.from_user.first_name + '.')
-            else:
-                if cyber != 1:
-                    bot.send_message(m.chat.id, 'Этот юзер не является администратором питомца!')
-                else:
-                    bot.send_message(m.chat.id, 'Этот киберюзер не является киберадминистратором киберпитомца!')
-
-        else:
-            if cyber != 1:
-                bot.send_message(m.chat.id, 'Сделайте реплай на сообщение цели!')
-            else:
-                bot.send_message(m.chat.id, 'Сделайте киберреплай на киберсообщение киберцели!')
-
+    chatt = db.chat_admins.find_one({'id': m.chat.id})
+    if chatt == None:
+        db.chat_admins.insert_one(createchatadmins(m))
+        chatt = db.chat_admins.find_one({'id': m.chat.id})
+    if int(m.reply_to_message.from_user.id) in chatt['admins']:
+        db.chat_admins.update_one({'id': m.chat.id}, {'$pull': {'admins': int(m.reply_to_message.from_user.id)}})
+        bot.send_message(m.chat.id,
+                            'Успешно удалён админ питомца: ' + m.reply_to_message.from_user.first_name + '.')
     else:
-        if cyber != 1:
-            bot.send_message(m.chat.id, 'Только создатель чата может делать это!')
-        else:
-            bot.send_message(m.chat.id, 'Только киберсоздатель чата может киберделать это!')
+        bot.send_message(m.chat.id, 'Этот юзер не является администратором питомца!')
 
 
 def createchatadmins(m):
@@ -334,9 +233,7 @@ def createchatadmins(m):
         'admins': []
     }
 
-"""
 
-"""
 @bot.message_handler(commands=['getids'], func=admin_lambda)
 def idssssss(m):
     text = ''
@@ -793,27 +690,7 @@ def getmsg(m):
 @bot.message_handler(commands=['throwh'], func=lambda message: is_actual(message))
 def throwh(m):
     if m.chat.id not in ban:
-        user = bot.get_chat_member(m.chat.id, m.from_user.id)
-        ch = db.chat_admins.find_one({'id': m.chat.id})
-        if ch == None:
-            if user.status != 'creator' and user.status != 'administrator' and not is_from_admin(
-                    m) and m.from_user.id != m.chat.id:
-                if cyber != 1:
-                    bot.send_message(m.chat.id, 'Только админ может делать это!')
-                else:
-                    bot.send_message(m.chat.id, 'Только киберадмин может киберделать это!')
-
-                return
-        else:
-            if m.from_user.id not in ch['admins']:
-                if cyber != 1:
-                    bot.send_message(m.chat.id,
-                                     'Только админ питомца может делать это! Выставить админов может создатель чата по команде: /set_admin. Убрать админа можно командой /remove_admin.')
-                else:
-                    bot.send_message(m.chat.id,
-                                     'Только киберадмин киберпитомца может киберделать это! Выставить киберадминов может киберсоздатель киберчата по киберкоманде: /set_admin. Убрать киберадмина можно киберкомандой /remove_admin.')
-
-                return
+        
 
         if db.chats.find_one({'id': m.chat.id}) is None:
             if cyber != 1:
@@ -1170,8 +1047,7 @@ def change_pet(pet):
 
 
 def new_season(ses):
-    print('First part of news.')
-    """
+    bot.send_message(admin_id, 'Начинается новый сезон.')
     for ids in db.chats.find({}):
         x = db.globalchats.find_one({'id': ids['id']})
         if x == None:
@@ -1195,9 +1071,9 @@ def new_season(ses):
                              'Начинается новый сезон! Все ваши текущие питомцы добавлены вам в дом, но кормить их больше не нужно, и уровень у них больше не поднимется. Они останутся у вас как память. Все чаты из топ-10 получают 3 куба в подарок!')
         except:
             pass
-    """
     db.chats.delete_many({})
     db.lost.delete_many({})
+    bot.send_message(admin_id, 'Новый сезон начался!')
 
 
 #@bot.message_handler(commands=['refresh_lvl'])
@@ -1245,12 +1121,6 @@ def messages(m):
             db.chats.update_one({'id': m.chat.id},
                              {'$set': {'title': title, 'lvlupers': lvlupers, 'lastminutefeed': lastminutefeed}})
 
-    #  try:
-    #      if animal['spying'] is not None:
-    #          bot.send_message(animal['spying'], '(Name: ' + m.from_user.first_name + ') (id: ' + str(
-    #              m.from_user.id) + ') (text: ' + m.text + ')')
-    #  except:
-    #      pass
 
 
 @bot.callback_query_handler(func=lambda call: True)
