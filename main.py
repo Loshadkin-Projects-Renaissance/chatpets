@@ -15,7 +15,7 @@ db = Database(mongo_url)
 
 bot.send_message(admin_id, 'Попітка встата!')
 
-@bot.message_handler(func=lambda message: not is_actual(message))
+@bot.message_handler(func=lambda m: not is_actual(m))
 def skip_message(m):
     pass
 
@@ -44,8 +44,7 @@ def chatid_handler(m):
 
 @bot.message_handler(commands=['chat_amount'], func=admin_lambda)
 def chat_amount_handler(m):
-    chats = list(db.chats.find({}))
-    bot.send_message(m.chat.id, f'Всего я знаю {len(chats)} чатов!')
+    bot.send_message(m.chat.id, f'Всего я знаю {db.chats.count_documents({})} чатов!')
 
 
 @bot.message_handler(commands=['newses'], func=admin_lambda)
@@ -178,36 +177,28 @@ def donate(m):
     bot.send_message(m.chat.id, text, parse_mode='markdown')
 
 
-@bot.message_handler(commands=['death'], func=admin_lambda)
+@bot.message_handler(commands=['death'], func=lambda m: admin_lambda(m) and arguments_lambda(m))
 def death_handler(m):
-    try:
-        chat = int(m.text.split(' ')[1])
-        lvl = int(m.text.split(' ')[2])
-        chatt = db.chats.find_one({'id': chat})
-        db.chats.update_one({'id': chat}, {'$inc': {'lvl': lvl}})
-        db.chats.update_one({'id': chat}, {'$set': {'exp': nextlvl(chatt)}})
+    chat = int(m.text.split(' ')[1])
+    lvl = int(m.text.split(' ')[2])
+    chatt = db.chats.find_one({'id': chat})
+    db.chats.update_one({'id': chat}, {'$inc': {'lvl': lvl}})
+    db.chats.update_one({'id': chat}, {'$set': {'exp': nextlvl(chatt)}})
 
-        bot.send_message(m.chat.id, 'Операция выполнена. Чат получил (или потерял) ' + str(lvl) + ' уровней.')
-    except:
-        bot.send_message(m.chat.id, 'Ошибка!')
+    bot.send_message(m.chat.id, 'Операция выполнена. Чат получил (или потерял) ' + str(lvl) + ' уровней.')
 
 
-@bot.message_handler(commands=['new_name'])
-def useitt(m):
-    if m.from_user.id != admin_id:
-        return
-    try:
-        chat = int(m.text.split(' ')[1])
-        lvl = int(m.text.split(' ')[2])
-        chatt = db.chats.find_one({'id': chat})
-        db.chats.update_one({'id': chat}, {'$inc': {'lvl': lvl, 'exp': nextlvl(chatt)}})
-        bot.send_message(m.chat.id, 'Операция выполнена. Чат получил (или потерял) ' + str(lvl) + ' уровней.')
-    except:
-        bot.send_message(m.chat.id, 'Ошибка!')
+@bot.message_handler(commands=['new_name'], func=lambda m: admin_lambda(m) and arguments_lambda(m))
+def new_name_handler(m):
+    chat = int(m.text.split(' ')[1])
+    lvl = int(m.text.split(' ')[2])
+    chatt = db.chats.find_one({'id': chat})
+    db.chats.update_one({'id': chat}, {'$inc': {'lvl': lvl, 'exp': nextlvl(chatt)}})
+    bot.send_message(m.chat.id, 'Операция выполнена. Чат получил (или потерял) ' + str(lvl) + ' уровней.')
 
 
-@bot.message_handler(commands=['do'], func=admin_lambda)
-def do(m):
+@bot.message_handler(commands=['do'], func=lambda m: admin_lambda(m) and arguments_lambda(m))
+def do_handler(m):
     try:
         x = m.text.split('/do ')[1]
         try:
@@ -218,60 +209,52 @@ def do(m):
         bot.send_message(admin_id, traceback.format_exc())
 
 
-@bot.message_handler(commands=['stop'], func=admin_lambda)
-def stopp(m):
-    try:
-        db.chats.update_one({'id': int(m.text.split(' ')[1])}, {'$set': {'spying': None}})
-        bot.send_message(m.chat.id, 'success')
-    except:
-        bot.send_message(admin_id, traceback.format_exc())
+@bot.message_handler(commands=['stop'], func=lambda m: admin_lambda(m) and arguments_lambda(m))
+def stop_handler(m):
+    db.chats.update_one({'id': int(m.text.split(' ')[1])}, {'$set': {'spying': None}})
+    bot.send_message(m.chat.id, 'success')
 
 
-@bot.message_handler(commands=['showchat'], func=admin_lambda)
-def showchat(m):
-    try:
-        db.chats.update_one({'id': int(m.text.split(' ')[1])}, {'$set': {'spying': m.chat.id}})
-        bot.send_message(m.chat.id, 'success')
-    except:
-        bot.send_message(admin_id, traceback.format_exc())
+@bot.message_handler(commands=['showchat'], func=lambda m: admin_lambda(m) and arguments_lambda(m))
+def showchat_handler(m):
+    db.chats.update_one({'id': int(m.text.split(' ')[1])}, {'$set': {'spying': m.chat.id}})
+    bot.send_message(m.chat.id, 'success')
 
 
 @bot.message_handler(commands=['growpet'])
 def grow(m):
-    animal = db.chats.find_one({'id': m.chat.id})
-    if animal:
+    if db.get_pet(m.chat.id):
         bot.send_message(m.chat.id, 'У вас уже есть лошадь!')
         return
 
-    db.chats.insert_one(createpet(m.chat.id))
-    gchat = db.globalchats.find_one({'id': m.chat.id})
-    if gchat:
-        if gchat['new_season']:
-            lvl = 0
-            upg = None
-            if gchat['1_upgrade'] > 0:
-                lvl = 100
-                upg = '1_upgrade'
-            if gchat['2_upgrade'] > 0:
-                lvl = 200
-                upg = '2_upgrade'
-            if gchat['3_upgrade'] > 0:
-                lvl = 500
-                upg = '3_upgrade'
-            if upg:
-                db.chats.update_one({'id': m.chat.id}, {
-                    '$set': {'lvl': lvl, 'maxhunger': 100 + lvl * 15, 'hunger': 100 + lvl * 15,
-                             'exp': nextlvl({'lvl': lvl})}})
-                bot.send_message(m.chat.id, 'Использовано усиление. Теперь ваш питомец имеет ' + str(lvl) + ' уровень!')
-                db.globalchats.update_one({'id': m.chat.id}, {'$inc': {upg: -1}})
+    db.create_pet(m.chat.id)
+    chat = db.globalchats.find_one({'id': m.chat.id})
+    if not chat:
+        return
+    if not chat['new_season']:
+        return
 
-            db.globalchats.update_one({'id': m.chat.id}, {'$set': {'new_season': False}})
-    if cyber != 1:
-        bot.send_message(m.chat.id,
-                         'Поздравляю! Вы завели питомца (лошадь)! О том, как за ней ухаживать, можно прочитать в /help.')
-    else:
-        bot.send_message(m.chat.id,
-                         'Кибероздравляю! Вы завели киберпитомца (киберлошадь)! О том, как за ней киберухаживать, можно киберпрочитать в киберхелп(/help).')
+    lvl = 0
+    upgrades = [f'{i}_upgrade' for i in range(4)]
+    upgrades.reverse()
+    for upgrade in upgrades:
+        i = int(upgrade[0])
+        if not i:
+            upgrade = None
+            break
+        if chat[upgrade] > 0:
+            lvl = 100*i
+            break
+            
+    if upgrade:
+        db.chats.update_one({'id': m.chat.id}, {
+            '$set': {'lvl': lvl, 'maxhunger': 100 + lvl * 15, 'hunger': 100 + lvl * 15,
+                        'exp': nextlvl({'lvl': lvl})}})
+        db.globalchats.update_one({'id': m.chat.id}, {'$inc': {upg: -1}})
+
+    db.globalchats.update_one({'id': m.chat.id}, {'$set': {'new_season': False}})
+
+    bot.send_message(m.chat.id, 'Поздравляю! Вы завели питомца (лошадь)! О том, как за ней ухаживать, можно прочитать в /help.')
 
 
 @bot.message_handler(commands=['set_admin'])
@@ -1112,6 +1095,7 @@ def selectpett(m):
     if len(x) != 2:
         bot.send_message(m.chat.id,
                          'Ошибка! Используйте формат\n/select_pet pet\nГде pet - доступный вам тип питомцев (посмотреть их можно в /chat_stats).')
+        return
     pet = x[1]
     newpet = change_pet(pet)
     if not newpet:
@@ -1340,29 +1324,7 @@ def createglobalchat(id):
         '3_upgrade': 0,
         'new_season': False
     }
-
-
-def createpet(id, typee='horse', name='Без имени'):
-    return {
-        'id': id,
-        'type': typee,
-        'name': name,
-        'lvl': 1,
-        'exp': 0,
-        'hp': 100,
-        'maxhp': 100,
-        'lastminutefeed': [],  # Список юзеров, которые проявляли актив в последнюю минуту
-        'hunger': 100,
-        'maxhunger': 100,
-        'title': None,  # Имя чата
-        'stats': {},  # Статы игроков: кто сколько кормит лошадь итд
-        'spying': None,
-        'send_lvlup': True,
-        'lvlupers': [],
-        'cock_check': 0,
-        'panda_feed': 0
-    }
-
+    
 
 def medit(message_text, chat_id, message_id, reply_markup=None, parse_mode=None):
     return bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=message_text, reply_markup=reply_markup,
