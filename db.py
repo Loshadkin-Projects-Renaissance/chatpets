@@ -71,7 +71,7 @@ class Database:
         pet = self.chats.find_one({'id': chat_id})
         self.chats.delete_one({'id': chat_id})
 
-        self.lost.insert_one(pet)
+        self.lost.insert_one(dict(pet))
         horse_id = self.lost.count_documents({'id': {'$exists': True}})
         while self.lost.find_one({'id': horse_id}) is not None:
             horse_id += 1

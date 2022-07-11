@@ -15,7 +15,8 @@ def name_lambda(m):
         bot.send_message(m.chat.id,
                                 'Вам было запрещено менять имя питомца! Разбан через рандомное время (1 минута - 24 часа).')
         return
-    if not chat_admin_lambda(m):
+    if not horse_admin_lambda(m):
+        print('no horse admin')
         return
     if not arguments_lambda(m):
         bot.send_message(m.chat.id,
@@ -25,22 +26,23 @@ def name_lambda(m):
     if not (2 <= len(m.text) <= 50):
         bot.send_message(m.chat.id, 'Имя должно быть от 2 до 50 символов.')
         return
+    return True
     
 def throwh_lambda(c):
     if not c.data.startswith('throwh'):
         return
-    if c.message.chat.it in ban:
+    if c.message.chat.id in ban:
         medit('Можно выгонять только одного питомца в час!', c.message.chat.id, c.message.message_id)
         return
     if db.chats.find_one({'id': c.message.chat.id}) is None:
         medit("У вас даже лошади нет, а вы ее выкидывать собрались!", c.message.chat.id, c.message.message_id)
         return
     user = bot.get_chat_member(c.message.chat.id, c.from_user.id)
-    chat = db.chat_admins.find_one({'id': m.chat.id})
+    chat = db.chat_admins.find_one({'id': c.message.chat.id})
     if chat:
         if m.from_user.id in chat['admins']:
             return True
-    if user.type in {'creator', 'administrator'}:
+    if user.status in {'creator', 'administrator'}:
         return True
     return False
 
@@ -104,6 +106,8 @@ def horse_admin_lambda(m):
     return True
 
 def chat_admin_lambda(m, silent=False):
+    if m.chat.type == 'private':
+        return True
     if admin_lambda(m):
         return True
 

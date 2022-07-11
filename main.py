@@ -576,7 +576,7 @@ def ban_handler(m):
 
 @bot.message_handler(commands=['name'], func=name_lambda)
 def name_handler(m):
-    name = m.text.split('/name ')[1]
+    name = m.text.split(' ', 1)[1]
 
     if db.chats.find_one({'id': m.chat.id}) is None:
         bot.send_message(m.chat.id, 'Для начала питомца нужно завести (/growpet)!')
@@ -700,7 +700,7 @@ def announce(m):
             i += 1
         except:
             pass
-    bot.send_message(m.chat.id, f"Сообщение успешно получило {i}/{len(chat_ids)} чатиков")
+    bot.send_message(m.chat.id, f"Сообщение успешно получило {i}/{len(chats_ids)} чатиков")
 
 
 @bot.message_handler(commands=['secret'])
