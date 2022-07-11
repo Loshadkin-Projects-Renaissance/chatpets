@@ -72,7 +72,7 @@ class Database:
         pet = self.form_pet(chat_id)
         self.chats.insert_one(pet)
     
-    def createpet(id, typee='horse', name='Без имени'):
+    def form_pet(self, id, typee='horse', name='Без имени'):
         return {
             'id': id,
             'type': typee,

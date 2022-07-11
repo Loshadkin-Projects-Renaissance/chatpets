@@ -1661,8 +1661,8 @@ def check_newday():
     x = int(x[0]) + 3  # часы (+3, потому что heroku в Великобритании)
     z = time.ctime()
 
-    if y == 0 and x == 24:
-        choose_elites()
+#    if y == 0 and x == 24:
+        #choose_elites()
 
 
 
