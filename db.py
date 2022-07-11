@@ -67,10 +67,42 @@ class Database:
                             'exp': nextlvl({'lvl': lvl})}})
             db.globalchats.update_one({'id': m.chat.id}, {'$inc': {upg: -1}})
 
+    def lose_horse(self, chat_id):  # returns True on success
+        pet = self.chats.find_one({'id': chat_id})
+        self.chats.delete_one({'id': chat_id})
+
+        self.lost.insert_one(pet)
+        horse_id = self.lost.count_documents({'id': {'$exists': True}})
+        while self.lost.find_one({'id': horse_id}) is not None:
+            horse_id += 1
+        self.lost.update_one({'id': chat_id}, {'$set': {'id': horse_id}})
+        self.lost.update_one({'id': horse_id}, {'$set': {'type': 'horse'}})
+        return True
+
+    def give_pet(self, chat_id, pet):
+        self.globalchats.update_one({'id': chat_id}, {'$inc': {'pet_access': -1}, '$addToSet': {'avalaible_pets': pet}})
+
+    def take_horse(self, horse_id, new_chat_id):
+        self.lost.update_one({'id': horse_id}, {'$set': {'id': new_chat_id}})
+        pet = self.lost.find_one({'id': new_chat_id})
+        self.lost.delete_one({'id': new_chat_id})
+        self.chats.insert_one(pet)
+
         
     def create_pet(self, chat_id):
         pet = self.form_pet(chat_id)
         self.chats.insert_one(pet)
+
+    def create_user(self, user):
+        self.users.insert_one(self.from_user(user))
+
+    def from_user(self, user):
+        return {
+            'id': user.id,
+            'name': user.first_name,
+            'username': user.username,
+            'now_elite': False
+        }
     
     def form_pet(self, id, typee='horse', name='Без имени'):
         return {
@@ -91,4 +123,19 @@ class Database:
             'lvlupers': [],
             'cock_check': 0,
             'panda_feed': 0
+        }
+
+    def form_globalchat(self, id):
+        return {
+            'id': id,
+            'avalaible_pets': ['horse'],
+            'saved_pets': {},
+            'pet_access': 0,
+            'pet_maxlvl': 0,
+            'achievements': [],
+            '1_upgrade': 0,
+            '2_upgrade': 0,
+            '3_upgrade': 0,
+            'new_season': False,
+            'still': True
         }
