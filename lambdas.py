@@ -1,5 +1,4 @@
 from startup import *
-import time 
 
 def is_actual(m):
     return m.date + 120 > int(round(time.time()))

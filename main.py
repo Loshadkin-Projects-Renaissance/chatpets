@@ -415,7 +415,23 @@ def top_handler(m):
     bot.send_message(m.chat.id, text, disable_web_page_preview=True)
 
 
-@bot.message_handler(commands=['help'], func=lambda message: is_actual(message))
+@bot.message_handler(commands=['bot_stat'], func=admin_lambda)
+def bot_stat_handler(m):
+    a = db.chats.count_documents({})
+    b = db.globalchats.count_documents({'still': True})
+    c = db.globalchats.count_documents({})
+    d = db.users.count_documents({})
+    e = db.curses.find_one({})
+    e1 = e['season']
+    e2 = date.fromtimestamp(e['lastseason']).strftime('%H:%M:%S %d.%m.%y')
+    tts = f'📊Статистика бота:\n'
+    tts += f'💬Чаты: {a}|{b}|{c}\n'
+    tts += f'👤Пользователи: {d}\n'
+    tts += f'🍂Сезон: {e1}|{e2}'
+    bot.respond_to(m, tts)
+
+
+@bot.message_handler(commands=['help'])
 def help(m):
     text = ''
     text += 'Чатовые питомцы питаются активностью юзеров. Чем больше вы общаетесь в чате, тем счастливее будет питомец! '
