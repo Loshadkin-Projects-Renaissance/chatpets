@@ -29,6 +29,7 @@ def name_lambda(m):
     
 def throwh_lambda(c):
     if not c.data.startswith('throwh'):
+        print('Not throwh.')
         return
     if c.message.chat.id in ban:
         medit('Можно выгонять только одного питомца в час!', c.message.chat.id, c.message.message_id)
@@ -38,11 +39,14 @@ def throwh_lambda(c):
         return
     user = bot.get_chat_member(c.message.chat.id, c.from_user.id)
     chat = db.chat_admins.find_one({'id': c.message.chat.id})
+    if c.message.chat.type == 'private':
+        return True
     if chat:
         if m.from_user.id in chat['admins']:
             return True
     if user.status in {'creator', 'administrator'}:
         return True
+    print('throwh but no')
     return False
 
 

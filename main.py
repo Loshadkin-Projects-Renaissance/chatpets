@@ -954,8 +954,8 @@ def check_hunger(pet, horse_lost):
     # если кто-то писал в чат, прибавить кол-во еды равное кол-во покормивших в эту минуту * 2
     gchat = db.globalchats.find_one({'id': pet['id']})
     if gchat != None:
-        if len(lastminutefeed) >= 10 and '10 db.users in one minute!' not in gchat['achievements']:
-            db.globalchats.update_one({'id': pet['id']}, {'$push': {'achievements': '10 db.users in one minute!'}})
+        if len(lastminutefeed) >= 10 and '10 users in one minute!' not in gchat['achievements']:
+            db.globalchats.update_one({'id': pet['id']}, {'$push': {'achievements': '10 users in one minute!'}})
             db.globalchats.update_one({'id': pet['id']}, {'$inc': {'pet_access': 3}})
             if cyber != 1:
                 bot.send_message(pet['id'], 'Заработано достижение: супер-актив! Получено: 3 куба (/chat_stats).')
