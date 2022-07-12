@@ -1,4 +1,6 @@
 from pymongo import MongoClient
+from constants import *
+import time
 
 class Database:
     def __init__(self, mongo_url):
@@ -40,10 +42,18 @@ class Database:
         self.chats.update_one({'id': chat2}, {
             '$set': {'lvl': pet1['lvl'], 'hunger': pet1['hunger'], 'maxhunger': pet1['maxhunger'], 'exp': pet1['exp']}})
 
+    def user_cleanup(self):
+        result = self.users.update_many({'time': {'$lt': time.time() - INACTIVE_TIME}}, {'$set': {'active': False}})
+        return result.modified_count
+    
+    def chat_cleanup(self):
+        result = self.globalchats.update_many({'time': {'$lt': time.time() - INACTIVE_TIME}}, {'$set': {'active': False}})
+        return result.modified_count
+
     def choose_elites(self):
-        self.users.update_many({}, {'$set': {'now_elite': False}})
-        for elite in self.users.aggregate({'$sample': {'size': '10%'}}):
-            self.users.update_one({'id': ids}, {'$set': {'now_elite': True}})
+        size = self.users.update_many({}, {'$set': {'now_elite': False}}).matched_count
+        for elite in self.users.aggregate([{'$sample': {'size': int(size/10)}}]):
+            self.users.update_one({'id': elite["id"]}, {'$set': {'now_elite': True}})
 
     def use_upgrade(self, chat_id):
         self.globalchats.update_one({'id': chat_id}, {'$set': {'new_season': False}})
@@ -88,7 +98,6 @@ class Database:
         self.lost.delete_one({'id': new_chat_id})
         self.chats.insert_one(pet)
 
-        
     def create_pet(self, chat_id):
         pet = self.form_pet(chat_id)
         self.chats.insert_one(pet)

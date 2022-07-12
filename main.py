@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from startup import *
 from lambdas import *
-bot.send_message(admin_id, 'Попітка встата!')
 
 @bot.message_handler(func=lambda m: not is_actual(m))
 def skip_message(m):
@@ -321,6 +320,7 @@ def scan_chats_handler(m):
         print(traceback.format_exc())
 
 def scan_ch():
+    bot.send_message(admin_id, 'Сканирование начато.')
     print('Подготовка...')
     #db.globalchats.update_many({}, {'$set': {'still': False}})
     print('Фаза первая. Скачивание базы данных.')
@@ -331,16 +331,17 @@ def scan_ch():
     print(f'БД скачана. Размер: {len(all_chats)}')
     print(f'Фаза вторая: сканирование.')
 
-    for i in range(8300, len(all_chats)):
+    for i in range(len(all_chats)):
         chat = all_chats[i]
-        print(f'{i}/{len(all_chats)}: ПРОВЕРКА НАЛИЧИЯ БОТА В ЧАТЕ.')
+        print(f'{i}/{len(all_chats)-1}: ПРОВЕРКА НАЛИЧИЯ БОТА В ЧАТЕ.')
         try:
             bot.send_chat_action(chat['id'], 'typing')
-            print(f'{i}/{len(all_chats)}: УСПЕХ.')
+            print(f'{i}/{len(all_chats)-1}: УСПЕХ.')
             db.globalchats.update_one({'id': chat['id']}, {'$set': {'still': True}})
         except:
-            print(f'{i}/{len(all_chats)}: ПРОВАЛ.')
+            print(f'{i}/{len(all_chats)-1}: ПРОВАЛ.')
             db.globalchats.update_one({'id': chat['id']}, {'$set': {'still': False}})
+    bot.send_message(admin_id, 'Сканирование завершено.')
         
 
 @bot.message_handler(commands=['getpets'], func=admin_lambda)
@@ -420,13 +421,16 @@ def bot_stat_handler(m):
     a = db.chats.count_documents({})
     b = db.globalchats.count_documents({'still': True})
     c = db.globalchats.count_documents({})
-    d = db.users.count_documents({})
+    c1 = db.globalchats.count_documents({'active': True})
+    d1 = db.users.count_documents({})
+    d2 = db.users.count_documents({'now_elite': True})
+    d3 = db.users.count_documents({'active': True})
     e = db.curses.find_one({})
     e1 = e['season']
     e2 = date.fromtimestamp(e['lastseason']).strftime('%H:%M:%S %d.%m.%y')
     tts = f'📊Статистика бота:\n'
-    tts += f'💬Чаты: {a}|{b}|{c}\n'
-    tts += f'👤Пользователи: {d}\n'
+    tts += f'💬Чаты: {a}|{c1}|{b}|{c}\n'
+    tts += f'👤Пользователи: {d3}|{d2}|{d1}\n'
     tts += f'🍂Сезон: {e1}|{e2}'
     bot.respond_to(m, tts)
 
@@ -793,17 +797,16 @@ def new_season(ses):
 
 @bot.message_handler(content_types=['text'])
 def messages(m):
-    #if m.from_scheduled:
-     #   bot.send_message(admin_id,m.from_user.first_name+' ('+ str(m.from_user.username)+')\n'+m.text)
-      #  return
     if random.randint(1, 100) <= 80:
         return
     if db.users.find_one({'id': m.from_user.id}) == None:
         db.create_user(m.from_user)
     if m.from_user.first_name == 'Telegram':
         pass
+    db.users.update_one({'id': m.from_user.id}, {'$set': {'active': True, 'time': time.time()}})
     if db.globalchats.find_one({'id': m.chat.id}) == None:
         db.globalchats.insert_one(db.form_globalchat(m.chat.id))
+    db.globalchats.update_one({'id': m.chat.id}, {'$set': {'active': True, 'time': time.time()}})
 
     animal = db.chats.find_one({'id': m.chat.id})
     if animal is None:
@@ -1118,6 +1121,10 @@ def check_all_pets_hunger():
     for pet in db.chats.find({}):
         check_hunger(pet, False)
 
+def cleanup():
+    bot.send_message(admin_id, f'♻️Очищено пользователей: {db.user_cleanup()}')
+    bot.send_message(admin_id, f'♻️Очищено чатов: {db.chat_cleanup()}')
+    threading.Timer(24*60*60, cleanup).start()
 
 def check_all_pets_lvlup():
     threading.Timer(1800, check_all_pets_lvlup).start()
@@ -1198,15 +1205,13 @@ def check_newday():
             bot.send_message(admin_id, traceback.format_exc())
 
 
-
-
-def is_from_admin(m):
-    return m.from_user.id == admin_id
-
 threading.Thread(target=check_all_pets_hunger).start()
 threading.Thread(target=check_all_pets_hp).start()
 threading.Thread(target=check_newday).start()
+threading.Thread(target=cleanup).start()
 threading.Timer(900, check_all_pets_lvlup).start()
+
+
 
 bot.send_message(admin_id, 'Бот встал.')
 

@@ -15,7 +15,6 @@ def name_lambda(m):
                                 'Вам было запрещено менять имя питомца! Разбан через рандомное время (1 минута - 24 часа).')
         return
     if not horse_admin_lambda(m):
-        print('no horse admin')
         return
     if not arguments_lambda(m):
         bot.send_message(m.chat.id,
@@ -29,7 +28,6 @@ def name_lambda(m):
     
 def throwh_lambda(c):
     if not c.data.startswith('throwh'):
-        print('Not throwh.')
         return
     if c.message.chat.id in ban:
         medit('Можно выгонять только одного питомца в час!', c.message.chat.id, c.message.message_id)
@@ -46,7 +44,6 @@ def throwh_lambda(c):
             return True
     if user.status in {'creator', 'administrator'}:
         return True
-    print('throwh but no')
     return False
 
 

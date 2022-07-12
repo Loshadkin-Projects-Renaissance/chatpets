@@ -5,6 +5,9 @@ totalban = [243153864, 866706209, 598442962, 765420407,
             820831937, -1001380240196]
 block = [-1001365421933, 725226227, 96542998, 820831937, -1001380240196]
 PRIVATE = [-1001249266392]
+
+INACTIVE_TIME = 60 * 60 * 24 * 14
+
 alltypes = ['parrot', 'cat', 'dog', 'bear', 'pig', 'hedgehog', 'octopus', 'turtle', 'crab', 'spider', 'bee', 'owl',
                 'boar', 'panda', 'cock', 'onehorn', 'goose', 'kaza']
 cyber = 0
