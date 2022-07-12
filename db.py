@@ -51,7 +51,7 @@ class Database:
         return result.modified_count
 
     def choose_elites(self):
-        size = self.users.update_many({}, {'$set': {'now_elite': False}}).matched_count
+        size = self.users.update_many({'active': True}, {'$set': {'now_elite': False}}).matched_count
         for elite in self.users.aggregate([{'$sample': {'size': int(size/10)}}, {'$match': {'active': True}}]):
             self.users.update_one({'id': elite["id"]}, {'$set': {'now_elite': True}})
 
