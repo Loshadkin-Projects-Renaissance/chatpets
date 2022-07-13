@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from startup import *
 from lambdas import *
+import sys
 
 @bot.message_handler(func=lambda m: not is_actual(m))
 def skip_message(m):
@@ -1232,3 +1233,5 @@ except:
     bot.send_message(admin_id, 'DIED')
     bot.send_message(admin_id, traceback.format_exc())
     exit(1)
+    quit()
+    sys.exit()
