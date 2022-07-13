@@ -11,8 +11,6 @@ class Database:
         self.globalchats = self.db.globalchats
         self.lost = self.db.lost
         self.chat_admins = self.db.chat_admins
-        self.pay = self.db.pay
-        self.donates = self.db.donates
         self.curses = self.db.curseason
 
         self.initialization()
@@ -51,10 +49,11 @@ class Database:
         return result.modified_count
 
     def choose_elites(self):
-        self.users.update_many({}, {'$set': {'now_elite': False}})
+        self.users.update_many({}, {'$set': {ELITE: False}})
         size = self.users.count_documents({'active': True})
-        for elite in self.users.aggregate([{'$sample': {'size': int(size/10)}}, {'$match': {'active': True}}]):
-            self.users.update_one({'id': elite["id"]}, {'$set': {'now_elite': True}})
+        print(f'Size: {size}')
+        for elite in self.users.aggregate([{'$match': {'active': True}}, {'$sample': {'size': int(size/10)}}]):
+            self.users.update_one({'id': elite["id"]}, {'$set': {ELITE: True}})
 
     def use_upgrade(self, chat_id):
         self.globalchats.update_one({'id': chat_id}, {'$set': {'new_season': False}})
@@ -111,7 +110,7 @@ class Database:
             'id': user.id,
             'name': user.first_name,
             'username': user.username,
-            'now_elite': False
+            ELITE: False
         }
     
     def form_pet(self, id, typee='horse', name='Без имени'):

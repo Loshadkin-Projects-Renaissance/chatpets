@@ -42,8 +42,19 @@ def newses_handler(m):
 
 @bot.message_handler(commands=['testadd'], func=admin_lambda)
 def addddd(m):
-    db.globalchats.update_one({'id': m.chat.id}, {'$inc': {'1_upgrade': 1}})
-    bot.send_message(m.chat.id, 'add1')
+    db.clean_users.drop()
+    print('ok now')
+    quq = []
+    for chat in db.chats.find({'still': True}):
+        user = dict(user)
+        user['_id'] = user['id']
+        del user['id']
+        if 'now_elite' in user:
+            del user['now_elite'] 
+        print(user['_id'])
+        quq.append(user)
+    db.clean_users.insert_many(quq)
+    print('done')
 
 @bot.message_handler(commands=['newelite'], func=admin_lambda)
 def elitecheckk(m):
@@ -56,8 +67,8 @@ def elitecheckk(m):
 def elitecheckk(m):
     bot.reply_to(m, 'Произвожу поиск...')
     tts = ""
-    for ids in db.users.find({'now_elite': True}):
-        if not ids['now_elite']:
+    for ids in db.users.find({ELITE: True}):
+        if not ids[ELITE]:
             continue
         if len(text) <= 2000:
             text += ids['name'] + '; '
@@ -78,7 +89,7 @@ def elitecheck_handler(m):
     user = db.users.find_one({'id': m.reply_to_message.from_user.id})
     if not user:
         return
-    bot.send_message(m.chat.id, str(user['now_elite']))
+    bot.send_message(m.chat.id, str(user[ELITE]))
 
 
 @bot.message_handler(commands=['switch_lvlup'])
@@ -423,7 +434,7 @@ def bot_stat_handler(m):
     c = db.globalchats.count_documents({})
     c1 = db.globalchats.count_documents({'active': True})
     d1 = db.users.count_documents({})
-    d2 = db.users.count_documents({'now_elite': True})
+    d2 = db.users.count_documents({ELITE: True})
     d3 = db.users.count_documents({'active': True})
     e = db.curses.find_one({})
     e1 = e['season']
@@ -818,7 +829,7 @@ def messages(m):
     if m.from_user.id not in animal['lastminutefeed']:
         lastminutefeed.append(m.from_user.id)
         up = True
-    if m.from_user.id not in animal['lvlupers'] and db.users.find_one({'id': m.from_user.id})['now_elite'] == True:
+    if m.from_user.id not in animal['lvlupers'] and db.users.find_one({'id': m.from_user.id})[ELITE] == True:
         lvlupers.append(m.from_user.id)
         up = True
     if m.chat.title != animal['title']:
