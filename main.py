@@ -12,6 +12,10 @@ def skip_message(m):
 def skip_message(m):
     pass
 
+#@bot.message_handler(func=register_user)
+#def skip_message(m):
+ #   pass
+
 @bot.message_handler(commands=['switch_pets'], func=lambda m: admin_lambda(m) and arguments_lambda(m))
 def switch_pets_handler(m):
     chat1 = int(m.text.split(' ')[1])
@@ -31,11 +35,6 @@ def chatid_handler(m):
     bot.send_message(m.chat.id, f'Айди чата: `{m.chat.id}`', parse_mode='Markdown')
 
 
-@bot.message_handler(commands=['chat_amount'], func=admin_lambda)
-def chat_amount_handler(m):
-    bot.send_message(m.chat.id, f'Всего я знаю {db.chats.count_documents({})} чатов!')
-
-
 @bot.message_handler(commands=['newses'], func=admin_lambda)
 def newses_handler(m):
     db.globalchats.update_one({'id': m.chat.id}, {'$set': {'new_season': True}})
@@ -44,16 +43,15 @@ def newses_handler(m):
 
 @bot.message_handler(commands=['testadd'], func=admin_lambda)
 def addddd(m):
-    users = db.users
+    coll = db.globalchats
+    new_coll = new_db.globalchats
 
     pack = []
-    for user in users.find({'id': {'$exists': 1}}):
-        user = dict(user)
-        user['_id'] = user['id']
-        del user['id']
+    for user in coll.find({}):
+        print('doing ' + str(random.randint(1, 3)))
         pack.append(user)
-    db.users.delete_many({'id': {'$exists': 1}})
-    db.users.insert_many(pack)
+    print('UPLOADING')
+    new_coll.insert_many(pack)
     print('done')
 
 @bot.message_handler(commands=['newelite'], func=admin_lambda)
@@ -61,27 +59,6 @@ def elitecheckk(m):
     bot.reply_to(m, 'Начинаю перевыбор элиты.')
     db.choose_elites()
     bot.reply_to(m, 'Теоретически - готово.')
-
-
-@bot.message_handler(commands=['getelite'], func=admin_lambda)
-def elitecheckk(m):
-    bot.reply_to(m, 'Произвожу поиск...')
-    tts = ""
-    for ids in db.users.find({ELITE: True}):
-        if not ids[ELITE]:
-            continue
-        if len(text) <= 2000:
-            text += ids['name'] + '; '
-        elif len(text2) <= 2000:
-            text2 += ids['name'] + '; '
-        else:
-            text3 += ids['name'] + '; '
-    try:
-        bot.send_message(m.chat.id, text)
-        bot.send_message(m.chat.id, text2)
-        bot.send_message(m.chat.id, text3)
-    except:
-        pass
 
 
 @bot.message_handler(commands=['elitecheck'], func=lambda m: admin_lambda(m) and reply_lambda(m))
@@ -92,28 +69,16 @@ def elitecheck_handler(m):
     bot.send_message(m.chat.id, str(user[ELITE]))
 
 
-@bot.message_handler(commands=['switch_lvlup'])
+@bot.message_handler(commands=['switch_lvlup'], func=horse_admin_lambda)
 def switch_lvlup(m):
+    print(1)
     try:
-        chat = db.chats.find_one({'id': m.chat.id})
-        user = bot.get_chat_member(m.chat.id, m.from_user.id)
-        if user.status == 'creator' or user.status == 'administrator' or m.from_user.id == m.chat.id or m.from_user.id == admin_id:
-            if chat['send_lvlup']:
-                db.chats.update_one({'id': m.chat.id}, {'$set': {'send_lvlup': False}})
-                bot.send_message(m.chat.id, 'Теперь питомец *НЕ* будет присылать вам уведомления о повышении уровня!',
-                                 parse_mode='markdown')
-            else:
-                db.chats.update_one({'id': m.chat.id}, {'$set': {'send_lvlup': True}})
-                bot.send_message(m.chat.id, 'Теперь питомец будет присылать вам уведомления о повышении уровня!')
-
-        else:
-            if cyber != 1:
-                bot.send_message(m.chat.id, 'Только администраторы чата могут делать это!')
-            else:
-                bot.send_message(m.chat.id, 'Только киберадминистраторы киберчата могут киберделать это!')
-
+        chat = db.get_pet(m.chat.id)
+        tts = f'Теперь питомец {"*НЕ* " if chat.send_lvlup else ""}будет присылать вам уведомления о повышении уровня!'
+        db.chats.update_one({'id': m.chat.id}, {'$set': {'send_lvlup': not chat.send_lvlup}})
+        bot.respond_to(m, tts, parse_mode='Markdown')
     except:
-        pass
+        print(traceback.format_exc())
 
 
 @bot.message_handler(commands=['cock'])
@@ -133,7 +98,7 @@ def showlevel_handler(m):
         x = nextlvl(pet)
         bot.send_message(m.chat.id, str(x))
     except:
-        pass
+        print(traceback.format_exc())
 
 
 @bot.message_handler(commands=['donate'])
@@ -815,7 +780,7 @@ def new_season(ses):
 def messages(m):
     if random.randint(1, 100) <= 80:
         return
-    if db.users.find_one({'_id': m.from_user.id}) == None:
+    if not db.get_user(m.from_user.id):
         db.create_user(m.from_user)
     if m.from_user.first_name == 'Telegram':
         pass

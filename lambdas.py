@@ -6,6 +6,12 @@ def is_actual(m):
 def block_lambda(m):
     return m.chat.id in block or m.from_user.id in block
 
+def register_user(m):
+    if db.users.find_one({'_id': m.from_user.id}):
+        db.users.update_one({'_id': m.from_user.id}, {'$set': {'time': time.time()}})
+    else:
+        db.create_user(m.from_user)
+
 def pet_abils_enabled(m):
     return pet_abils
 

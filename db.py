@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 from constants import *
 import time
+from models import User, Pet
 
 class Database:
     def __init__(self, mongo_url):
@@ -26,10 +27,17 @@ class Database:
             self.lost.insert_one({'amount': 0})
 
     def get_pet(self, chat_id):
-        return self.chats.find_one({'id': chat_id})
+        pet = self.chats.find_one({'id': chat_id})
+        if pet:
+            return Pet(pet)
 
     def get_chat(self, chat_id):
         return self.globalchats.find_one({'id': chat_id})
+
+    def get_user(self, user_id):
+        user = self.users.find_one({'_id': user_id})
+        if user:
+            return User(user)
 
     def switch_pets(self, chat1, chat2):
         pet1 = self.get_pet(chat1)
@@ -103,6 +111,8 @@ class Database:
         self.chats.insert_one(pet)
 
     def create_user(self, user):
+        if self.get_user(user.id):
+            return
         self.users.insert_one(self.from_user(user))
 
     def from_user(self, user):
