@@ -3,6 +3,7 @@ from startup import *
 from lambdas import *
 import sys
 import multiprocessing
+import threading
 
 @bot.message_handler(func=lambda m: not is_actual(m))
 def skip_message(m):
@@ -947,16 +948,6 @@ def check_hunger(pet, horse_lost):
                 bot.send_message(pet['id'],
                                  'Заработано кибердостижение: кибер-супер-актив! Получено: 3 киберкуба (/chat_stats).')
 
-    if gchat != None:
-        if 86190439 in lastminutefeed and 'dmitriy isaev' not in gchat['achievements']:
-            db.globalchats.update_one({'id': pet['id']}, {'$push': {'achievements': 'dmitriy isaev'}})
-            db.globalchats.update_one({'id': pet['id']}, {'$inc': {'pet_access': 3}})
-            if cyber != 1:
-                bot.send_message(pet['id'], 'Заработано достижение: Дмитрий Исаев! Получено: 3 куба (/chat_stats).')
-            else:
-                bot.send_message(pet['id'],
-                                 'Заработано кибердостижение: КиберДмитрий Исаев! Получено: 3 киберкуба (/chat_stats).')
-
     if len(lastminutefeed) > 0:
         hunger += len(lastminutefeed) * 10
         if pet_abils == True and pet['type'] == 'bear':
@@ -1095,17 +1086,24 @@ def check_hp(pet, horse_lost):
 
 def check_all_pets_hunger():
     while True:
-        time.sleep(122)
+        print('1')
         for pet in db.lost.find({'id': {'$exists': True}}):
+            
             check_hunger(pet, True)
         for pet in db.chats.find({}):
-            check_hunger(pet, False)    
+            print(pet)
+            check_hunger(pet, False) 
+        time.sleep(122)   
 
 def cleanup():
     while True:
-        bot.send_message(admin_id, f'♻️Очищено пользователей: {db.user_cleanup()}')
-        bot.send_message(admin_id, f'♻️Очищено чатов: {db.chat_cleanup()}')
-        time.sleep(24*60*60)
+        try:
+            tts = f'♻️Очищено пользователей: {db.user_cleanup()}\n'
+            tts += f'♻️Очищено чатов: {db.chat_cleanup()}'
+            bot.send_message(admin_id, tts)
+            time.sleep(24*60*60)
+        except:
+            pass
 
 def check_all_pets_lvlup():
     while True:
@@ -1186,12 +1184,11 @@ def check_newday():
             except:
                 bot.send_message(admin_id, traceback.format_exc())
 
-
-a = multiprocessing.Process(target=check_all_pets_hunger)
-b = multiprocessing.Process(target=check_all_pets_hp)
-c = multiprocessing.Process(target=check_newday)
-d = multiprocessing.Process(target=cleanup)
-e = multiprocessing.Process(target=check_all_pets_lvlup)
+a = threading.Thread(target=check_all_pets_hunger)
+b = threading.Thread(target=check_all_pets_hp)
+c = threading.Thread(target=check_newday)
+d = threading.Thread(target=cleanup)
+e = threading.Thread(target=check_all_pets_lvlup)
 
 threads = [a, b, c, d, e]
 for thread in threads:
