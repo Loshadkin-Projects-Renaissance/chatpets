@@ -2,6 +2,7 @@
 from startup import *
 from lambdas import *
 import sys
+import multiprocessing
 
 @bot.message_handler(func=lambda m: not is_actual(m))
 def skip_message(m):
@@ -43,18 +44,16 @@ def newses_handler(m):
 
 @bot.message_handler(commands=['testadd'], func=admin_lambda)
 def addddd(m):
-    db.clean_users.drop()
-    print('ok now')
-    quq = []
-    for chat in db.chats.find({'still': True}):
+    users = db.users
+
+    pack = []
+    for user in users.find({'id': {'$exists': 1}}):
         user = dict(user)
         user['_id'] = user['id']
         del user['id']
-        if 'now_elite' in user:
-            del user['now_elite'] 
-        print(user['_id'])
-        quq.append(user)
-    db.clean_users.insert_many(quq)
+        pack.append(user)
+    db.users.delete_many({'id': {'$exists': 1}})
+    db.users.insert_many(pack)
     print('done')
 
 @bot.message_handler(commands=['newelite'], func=admin_lambda)
@@ -697,6 +696,11 @@ def allinfo(m):
     bot.send_message(admin_id, text)
 
 
+@bot.message_handler(commands=['kill'], func=admin_lambda)
+def allinfo(m):
+    crash = __okieg
+
+
 @bot.message_handler(commands=['great_igogo'], func=lambda m: arguments_lambda(m) and admin_lambda(m))
 def announce(m):
     bot.respond_to(m, f'Начал.')
@@ -830,7 +834,7 @@ def messages(m):
     if m.from_user.id not in animal['lastminutefeed']:
         lastminutefeed.append(m.from_user.id)
         up = True
-    if m.from_user.id not in animal['lvlupers'] and db.users.find_one({'id': m.from_user.id})[ELITE] == True:
+    if m.from_user.id not in animal['lvlupers'] and db.users.find_one({'_id': m.from_user.id})[ELITE] == True:
         lvlupers.append(m.from_user.id)
         up = True
     if m.chat.title != animal['title']:
@@ -1110,7 +1114,7 @@ def check_hp(pet, horse_lost):
                     bot.send_message(pet['id'],
                                      'Вашему киберпитомцу киберплохо в вашем киберчате, ему не хватает киберпитания. Поэтому я киберзабираю его, чтобы он не киберумер.\n' +
                                      'Киберколичество киберпитомцев, которых мне пришлось киберзабрать (во всех киберчатах): ' + str(
-                                         total))
+                                         totasl))
 
             except:
                 pass
@@ -1124,33 +1128,34 @@ def check_hp(pet, horse_lost):
         else:
             db.lost.update_one({'id': pet['id']}, {'$set': commit})
 
-
 def check_all_pets_hunger():
-    threading.Timer(61, check_all_pets_hunger).start()
-
-    for pet in db.lost.find({'id': {'$exists': True}}):
-        check_hunger(pet, True)
-    for pet in db.chats.find({}):
-        check_hunger(pet, False)
+    while True:
+        time.sleep(122)
+        for pet in db.lost.find({'id': {'$exists': True}}):
+            check_hunger(pet, True)
+        for pet in db.chats.find({}):
+            check_hunger(pet, False)    
 
 def cleanup():
-    bot.send_message(admin_id, f'♻️Очищено пользователей: {db.user_cleanup()}')
-    bot.send_message(admin_id, f'♻️Очищено чатов: {db.chat_cleanup()}')
-    threading.Timer(24*60*60, cleanup).start()
+    while True:
+        bot.send_message(admin_id, f'♻️Очищено пользователей: {db.user_cleanup()}')
+        bot.send_message(admin_id, f'♻️Очищено чатов: {db.chat_cleanup()}')
+        time.sleep(24*60*60)
 
 def check_all_pets_lvlup():
-    threading.Timer(1800, check_all_pets_lvlup).start()
-    for pet in db.chats.find({}):
-        check_lvlup(pet)
-    db.chats.update_many({}, {'$set': {'lvlupers': []}})
-
+    while True:
+        time.sleep(1800)
+        for pet in db.chats.find({}):
+            check_lvlup(pet)
+        db.chats.update_many({}, {'$set': {'lvlupers': []}})
 
 def check_all_pets_hp():
-    for pet in db.lost.find({'id': {'$exists': True}}):
-        check_hp(pet, True)
-    for pet in db.chats.find({}):
-        check_hp(pet, False)
-    threading.Timer(1800, check_all_pets_hp).start()
+    while True:
+        time.sleep(1800)
+        for pet in db.lost.find({'id': {'$exists': True}}):
+            check_hp(pet, True)
+        for pet in db.chats.find({}):
+            check_hp(pet, False)
 
 def check_lvlup(pet):
     global cyber
@@ -1199,31 +1204,33 @@ def check_new_season():
 
 
 def check_newday():
-    t = threading.Timer(60, check_newday)
-    t.start()
-    try:
-        pass
-        #check_new_season()
-    except:
-        bot.send_message(admin_id, traceback.format_exc())
-    x = time.strftime('%M %H').split()
-    m = int(x[0])
-    h = int(x[1])
-
-    if m == 0 and h == 0:
+    while True:
+        time.sleep(59)
         try:
-            db.choose_elites()
+            pass
+            #check_new_season()
         except:
             bot.send_message(admin_id, traceback.format_exc())
+        x = time.strftime('%M %H').split()
+        m = int(x[0])
+        h = int(x[1])
+
+        if m == 0 and h == 0:
+            try:
+                db.choose_elites()
+            except:
+                bot.send_message(admin_id, traceback.format_exc())
 
 
-threading.Thread(target=check_all_pets_hunger).start()
-threading.Thread(target=check_all_pets_hp).start()
-threading.Thread(target=check_newday).start()
-threading.Thread(target=cleanup).start()
-threading.Timer(900, check_all_pets_lvlup).start()
+a = multiprocessing.Process(target=check_all_pets_hunger)
+b = multiprocessing.Process(target=check_all_pets_hp)
+c = multiprocessing.Process(target=check_newday)
+d = multiprocessing.Process(target=cleanup)
+e = multiprocessing.Process(target=check_all_pets_lvlup)
 
-
+threads = [a, b, c, d, e]
+for thread in threads:
+    thread.start()
 
 bot.send_message(admin_id, 'Бот встал.')
 
@@ -1232,6 +1239,8 @@ try:
 except:
     bot.send_message(admin_id, 'DIED')
     bot.send_message(admin_id, traceback.format_exc())
+    for thread in threads:
+        thread.kill()
     exit(1)
     quit()
     sys.exit()

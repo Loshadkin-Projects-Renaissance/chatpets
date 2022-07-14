@@ -110,6 +110,8 @@ class Database:
             '_id': user.id,
             'name': user.first_name,
             'username': user.username,
+            'active': True,
+            'time': time.time(),
             ELITE: False
         }
     
@@ -131,7 +133,10 @@ class Database:
             'send_lvlup': True,
             'lvlupers': [],
             'cock_check': 0,
-            'panda_feed': 0
+            'panda_feed': 0,
+
+            'active': True,
+            'time': time.time()
         }
 
     def form_globalchat(self, id):
