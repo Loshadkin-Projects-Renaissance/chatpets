@@ -87,7 +87,7 @@ def elitecheckk(m):
 
 @bot.message_handler(commands=['elitecheck'], func=lambda m: admin_lambda(m) and reply_lambda(m))
 def elitecheck_handler(m):
-    user = db.users.find_one({'id': m.reply_to_message.from_user.id})
+    user = db.users.find_one({'_id': m.reply_to_message.from_user.id})
     if not user:
         return
     bot.send_message(m.chat.id, str(user[ELITE]))
@@ -119,7 +119,7 @@ def switch_lvlup(m):
 
 @bot.message_handler(commands=['cock'])
 def cock_handler(m):
-    x = db.users.find_one({'id': m.reply_to_message.from_user.id})
+    x = db.users.find_one({'_id': m.reply_to_message.from_user.id})
     if not x:
         bot.send_message(m.chat.id, 'Этого пользователя даже нет у меня в базе!')
     tts = f'Выбранный юзер сегодня{"" if x["now_elite"] else " НЕ"} элита!'
@@ -811,7 +811,7 @@ def new_season(ses):
 def messages(m):
     if random.randint(1, 100) <= 80:
         return
-    if db.users.find_one({'id': m.from_user.id}) == None:
+    if db.users.find_one({'_id': m.from_user.id}) == None:
         db.create_user(m.from_user)
     if m.from_user.first_name == 'Telegram':
         pass

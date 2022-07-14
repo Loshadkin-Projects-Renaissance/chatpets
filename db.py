@@ -53,7 +53,7 @@ class Database:
         size = self.users.count_documents({'active': True})
         print(f'Size: {size}')
         for elite in self.users.aggregate([{'$match': {'active': True}}, {'$sample': {'size': int(size/10)}}]):
-            self.users.update_one({'id': elite["id"]}, {'$set': {ELITE: True}})
+            self.users.update_one({'_id': elite["_id"]}, {'$set': {ELITE: True}})
 
     def use_upgrade(self, chat_id):
         self.globalchats.update_one({'id': chat_id}, {'$set': {'new_season': False}})
@@ -107,7 +107,7 @@ class Database:
 
     def from_user(self, user):
         return {
-            'id': user.id,
+            '_id': user.id,
             'name': user.first_name,
             'username': user.username,
             ELITE: False
