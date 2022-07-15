@@ -115,6 +115,9 @@ class Database:
             return
         self.users.insert_one(self.from_user(user))
 
+    def create_globalchat(self, id):
+        self.globalchats.insert_one(self.form_globalchat(id))
+
     def from_user(self, user):
         return {
             '_id': user.id,

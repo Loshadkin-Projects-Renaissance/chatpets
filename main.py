@@ -842,20 +842,23 @@ def nextlvl(pet):
 
 
 def check_hunger(pet, horse_lost):
-    global cyber
     hunger = pet['hunger']
     maxhunger = pet['maxhunger']
     exp = pet['exp']
     lvl = pet['lvl']
     lastminutefeed = pet['lastminutefeed']
-    global pet_abils
+
+    gchat = db.globalchats.find_one({'id': pet['id']})
+    if not gchat:
+        db.create_globalchat(pet['id'])
+        gchat = db.globalchats.find_one({'id': pet['id']})
+
     if pet_abils == True:
         if pet['type'] == 'pig' and random.randint(1, 1000) <= 3:
             lvl += 1
             hunger += 15
             maxhunger += 15
-            lvvl = lvl
-            exp = nextlvl({'lvl': lvvl - 1})
+            exp = nextlvl({'lvl': lvl-1})
             if pet['send_lvlup'] == True:
                 try:
                     bot.send_message(pet['id'], 'Ваш питомец "свинка" повысил свой уровень на 1!')
@@ -937,16 +940,10 @@ def check_hunger(pet, horse_lost):
                 pass
 
     # если кто-то писал в чат, прибавить кол-во еды равное кол-во покормивших в эту минуту * 2
-    gchat = db.globalchats.find_one({'id': pet['id']})
-    if gchat != None:
-        if len(lastminutefeed) >= 10 and '10 users in one minute!' not in gchat['achievements']:
-            db.globalchats.update_one({'id': pet['id']}, {'$push': {'achievements': '10 users in one minute!'}})
-            db.globalchats.update_one({'id': pet['id']}, {'$inc': {'pet_access': 3}})
-            if cyber != 1:
-                bot.send_message(pet['id'], 'Заработано достижение: супер-актив! Получено: 3 куба (/chat_stats).')
-            else:
-                bot.send_message(pet['id'],
-                                 'Заработано кибердостижение: кибер-супер-актив! Получено: 3 киберкуба (/chat_stats).')
+    if len(lastminutefeed) >= 10 and '10 users in one minute!' not in gchat['achievements']:
+        db.globalchats.update_one({'id': pet['id']}, {'$push': {'achievements': '10 users in one minute!'}})
+        db.globalchats.update_one({'id': pet['id']}, {'$inc': {'pet_access': 3}})
+        bot.send_message(pet['id'], 'Заработано достижение: супер-актив! Получено: 3 куба (/chat_stats).')
 
     if len(lastminutefeed) > 0:
         hunger += len(lastminutefeed) * 10
@@ -967,7 +964,7 @@ def check_hunger(pet, horse_lost):
         bexp += lvl
     mult = 100
     z = db.globalchats.find_one({'id': pet['id']})
-    if z != None:
+    if z:
         try:
             for ids in z['saved_pets']:
                 x = z['saved_pets'][ids]['lvl'] / 200
@@ -982,30 +979,20 @@ def check_hunger(pet, horse_lost):
         lvl += 1
         maxhunger += 15
         if not horse_lost:
-            if cyber != 1:
-                send_message(pet['id'], 'Уровень вашего питомца повышен! Максимальный запас сытости увеличен на 15!',
-                             act='lvlup')
-            else:
-                send_message(pet['id'],
-                             'Киберуровень вашего киберпитомца повышен! Максимальный киберзапас киберсытости киберувеличен на 15!',
-                             act='lvlup')
+            send_message(pet['id'], 'Уровень вашего питомца повышен! Максимальный запас сытости увеличен на 15!', act='lvlup')
+
 
     ii = 100
-    if gchat != None:
-        while ii <= 10000:
-            if lvl >= ii and 'lvl ' + str(ii) not in gchat['achievements']:
-                db.globalchats.update_one({'id': pet['id']}, {'$push': {'achievements': 'lvl ' + str(ii)}})
-                db.globalchats.update_one({'id': pet['id']}, {'$inc': {'pet_access': 1}})
-                if cyber != 1:
-                    bot.send_message(pet['id'],
-                                     'Заработано достижение: ' + str(ii) + ' лвл! Получено: 1 куб (/chat_stats).')
-                else:
-                    bot.send_message(pet['id'], 'Заработано кибердостижение: ' + str(
-                        ii) + ' киберлвл! Получено: 1 киберкуб (/chat_stats).')
+    while ii <= 10000:
+        if lvl >= ii and 'lvl ' + str(ii) not in gchat['achievements']:
+            db.globalchats.update_one({'id': pet['id']}, {'$push': {'achievements': 'lvl ' + str(ii)}})
+            db.globalchats.update_one({'id': pet['id']}, {'$inc': {'pet_access': 1}})
+            bot.send_message(pet['id'], f'Заработано достижение: {ii} лвл! Получено: 1 куб (/chat_stats).')
 
-            ii += 100
+        ii += 100
 
     commit = {'hunger': hunger, 'maxhunger': maxhunger, 'exp': int(exp), 'lvl': lvl, 'lastminutefeed': lastminutefeed}
+
     if not horse_lost:
         db.chats.update_one({'id': pet['id']}, {'$set': commit})
     else:
@@ -1086,12 +1073,9 @@ def check_hp(pet, horse_lost):
 
 def check_all_pets_hunger():
     while True:
-        print('1')
         for pet in db.lost.find({'id': {'$exists': True}}):
-            
             check_hunger(pet, True)
         for pet in db.chats.find({}):
-            print(pet)
             check_hunger(pet, False) 
         time.sleep(122)   
 
@@ -1121,25 +1105,15 @@ def check_all_pets_hp():
             check_hp(pet, False)
 
 def check_lvlup(pet):
-    global cyber
-    lvl = 0
-    for ids in pet['lvlupers']:
-        lvl += 1
+    lvl = len(pet['lvlupers'])
     if lvl > 0:
-        #    if pet['lvl']>=10:
         db.chats.update_one({'id': pet['id']}, {'$inc': {'lvl': lvl, 'maxhunger': lvl * 15, 'hunger': lvl * 15}})
         lvvl = db.chats.find_one({'id': pet['id']})['lvl']
 
         db.chats.update_one({'id': pet['id']}, {'$set': {'exp': nextlvl({'lvl': lvvl - 1})}})
         if pet['send_lvlup'] == True:
             try:
-                if cyber != 1:
-                    bot.send_message(pet['id'],
-                                     '"Друзья животных" в вашем чате подняли уровень питомца на ' + str(lvl) + '!')
-                else:
-                    bot.send_message(pet['id'],
-                                     '"Кибердрузья киберживотных" в вашем киберчате подняли киберуровень киберпитомца на ' + str(
-                                         lvl) + '!')
+                bot.send_message(pet['id'], '"Друзья животных" в вашем чате подняли уровень питомца на ' + str(lvl) + '!')
 
             except:
                 pass
@@ -1181,6 +1155,7 @@ def check_newday():
         if m == 0 and h == 0:
             try:
                 db.choose_elites()
+                bot.send_message(admin_id, 'Элита перевыбрана.')
             except:
                 bot.send_message(admin_id, traceback.format_exc())
 
@@ -1199,10 +1174,10 @@ bot.send_message(admin_id, 'Бот встал.')
 try:
     bot.polling()
 except:
-    bot.send_message(admin_id, 'DIED')
+    bot.send_message(admin_id, 'Бот упал.')
     bot.send_message(admin_id, traceback.format_exc())
     for thread in threads:
-        thread.kill()
+        thread._stop()
     exit(1)
     quit()
     sys.exit()
