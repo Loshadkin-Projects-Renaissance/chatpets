@@ -1172,12 +1172,7 @@ for thread in threads:
 bot.send_message(admin_id, 'Бот встал.')
 
 try:
-    bot.polling()
+    bot.infinity_polling()
 except:
     bot.send_message(admin_id, 'Бот упал.')
     bot.send_message(admin_id, traceback.format_exc())
-    for thread in threads:
-        thread._stop()
-    exit(1)
-    quit()
-    sys.exit()
